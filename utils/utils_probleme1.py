@@ -257,7 +257,7 @@ class TensorPairDataset(Dataset):
         self.idx2distance = idx2distance
         self.num_cmls = len(idx2distance)
         self.indices = sorted(idx2distance.keys())
-        self.margin = margin
+        
     def __len__(self):
         return self.num_cmls
 
@@ -272,9 +272,40 @@ class TensorPairDataset(Dataset):
         noisy_series = 0.3 * noisy_series
         return idx, dist, ground_truth, noisy_series
 
+class TensorPairDatasetMargin(Dataset):
+   def __init__(self, duration, idx2distance, margin=120):
+        self.duration = duration
+        self.idx2distance = idx2distance
+        self.num_cmls = len(idx2distance)
+        self.indices = sorted(idx2distance.keys())
+        self.margin = margin
+
+    def __len__(self):
+        return self.num_cmls
+
+    def __getitem__(self, i):
+        idx = self.indices[i]
+        dist = self.idx2distance[idx]
+        dtheta = idx / 1000.
+        dp = 1 - idx / 1000.
+        ground_truth, noisy_series = generate_pair(self.duration, dist, dtheta, dp)
+
+        # Normalize and apply margins
+        noisy_series = 0.3 * noisy_series[self.margin:-self.margin]
+        ground_truth = ground_truth[self.margin:-self.margin]
+
+        return idx, dist, ground_truth, noisy_series
+
+
 # Step 2: Create the DataLoader
 def create_dataloader(duration, idx2distance, batch_size, shuffle=True):
     dataset = TensorPairDataset(duration, idx2distance)
     # num_workers = 2 for colab
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
+    return dataloader
+
+# Step 2: Create the DataLoader
+def create_dataloader_with_margin(duration, idx2distance, batch_size, shuffle=True, margin=120):
+    dataset = TensorPairDatasetWithMargin(duration, idx2distance, margin=margin)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
     return dataloader

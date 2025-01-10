@@ -257,7 +257,7 @@ class TensorPairDataset(Dataset):
         self.idx2distance = idx2distance
         self.num_cmls = len(idx2distance)
         self.indices = sorted(idx2distance.keys())
-
+        self.margin = margin
     def __len__(self):
         return self.num_cmls
 
